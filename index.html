@@ -1,0 +1,1392 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Ekspedisi Pasar Mini: Misi Ejen Penjodoh Bilangan!</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts: Fredoka & Quicksand -->
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Quicksand:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    body {
+      font-family: 'Quicksand', sans-serif;
+      background-color: #1a1b26;
+      color: #2d3748;
+      overflow: hidden;
+    }
+    h1, h2, h3, button, .font-heading {
+      font-family: 'Fredoka', cursive;
+    }
+    canvas {
+      display: block;
+      background: linear-gradient(to bottom, #87CEEB, #E0F6FF);
+      width: 100%;
+      height: 100%;
+    }
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #4fd1c5;
+      border-radius: 10px;
+    }
+    .touch-btn {
+      transition: transform 0.05s ease, background-color 0.15s ease;
+    }
+    .touch-btn:active {
+      transform: scale(0.92);
+    }
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #print-certificate, #print-certificate * {
+        visibility: visible;
+      }
+      #print-certificate {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        display: block !important;
+      }
+    }
+  </style>
+</head>
+<body class="h-screen w-screen flex flex-col justify-center items-center bg-slate-900 relative">
+
+  <!-- GAME CONTAINER -->
+  <div id="game-container" class="relative w-full max-w-5xl h-full md:h-[650px] bg-white md:rounded-3xl shadow-2xl overflow-hidden flex flex-col">
+    
+    <!-- TOP HUD BAR -->
+    <div id="hud-bar" class="hidden absolute top-0 left-0 w-full z-20 px-4 py-2 flex justify-between items-center bg-white/90 backdrop-blur-md border-b-4 border-yellow-300 shadow-md">
+      <!-- Player Info & Hearts -->
+      <div class="flex items-center space-x-3">
+        <div class="bg-amber-100 border-2 border-amber-400 px-3 py-1 rounded-full flex items-center space-x-2">
+          <i class="fa-solid font-bold fa-user text-amber-600"></i>
+          <span id="hud-player-name" class="font-bold text-amber-900 text-sm md:text-base">Ejen Cilik</span>
+        </div>
+        <div id="hud-lives" class="flex space-x-1 text-red-500 text-lg md:text-xl">
+          <i class="fa-solid fa-heart"></i>
+          <i class="fa-solid fa-heart"></i>
+          <i class="fa-solid fa-heart"></i>
+        </div>
+      </div>
+
+      <!-- Current Mission Badge -->
+      <div class="hidden sm:flex bg-cyan-100 border-2 border-cyan-400 px-4 py-1 rounded-full items-center space-x-2">
+        <i class="fa-solid fa-map-location-dot text-cyan-600"></i>
+        <span id="hud-mission-title" class="font-bold text-cyan-900 text-xs md:text-sm">Misi 1: Buah & Sayur</span>
+      </div>
+
+      <!-- Score & Stars -->
+      <div class="flex items-center space-x-3">
+        <div class="bg-yellow-100 border-2 border-yellow-400 px-3 py-1 rounded-full flex items-center space-x-1">
+          <i class="fa-solid fa-star text-yellow-500"></i>
+          <span id="hud-score" class="font-bold text-yellow-800 text-sm md:text-base">0</span>
+        </div>
+        <button id="btn-pause" onclick="togglePauseMenu()" class="bg-slate-200 hover:bg-slate-300 border-2 border-slate-400 w-9 h-9 rounded-full flex items-center justify-center text-slate-700 transition">
+          <i class="fa-solid fa-pause"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- CANVAS VIEWPORT -->
+    <div class="relative flex-1 w-full h-full overflow-hidden bg-sky-200">
+      <canvas id="gameCanvas"></canvas>
+
+      <!-- TOUCH CONTROLS OVERLAY FOR MOBILE -->
+      <div id="mobile-controls" class="hidden absolute bottom-2 left-0 right-0 z-20 px-4 flex justify-between items-end pointer-events-none">
+        <!-- Directional D-Pad -->
+        <div class="flex space-x-2 pointer-events-auto">
+          <button id="btn-left" class="touch-btn w-14 h-14 bg-white/80 active:bg-yellow-400 border-4 border-yellow-500 rounded-full shadow-lg flex items-center justify-center text-2xl text-yellow-800">
+            <i class="fa-solid fa-arrow-left"></i>
+          </button>
+          <button id="btn-right" class="touch-btn w-14 h-14 bg-white/80 active:bg-yellow-400 border-4 border-yellow-500 rounded-full shadow-lg flex items-center justify-center text-2xl text-yellow-800">
+            <i class="fa-solid fa-arrow-right"></i>
+          </button>
+        </div>
+        <!-- Jump & Interact Buttons -->
+        <div class="flex space-x-2 pointer-events-auto">
+          <button id="btn-interact" class="touch-btn hidden w-14 h-14 bg-emerald-400 active:bg-emerald-500 border-4 border-emerald-600 rounded-full shadow-lg flex items-center justify-center text-2xl text-white animate-bounce">
+            <i class="fa-solid fa-hand"></i>
+          </button>
+          <button id="btn-jump" class="touch-btn w-14 h-14 bg-sky-400 active:bg-sky-500 border-4 border-sky-600 rounded-full shadow-lg flex items-center justify-center text-2xl text-white">
+            <i class="fa-solid fa-arrow-up"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- UI OVERLAYS / SCREENS -->
+
+    <!-- SCREEN 1: MAIN MENU -->
+    <div id="screen-main-menu" class="absolute inset-0 z-30 flex flex-col items-center justify-center bg-gradient-to-br from-yellow-300 via-pink-300 to-sky-300 p-6 text-center">
+      <!-- Title Box -->
+      <div class="bg-white/90 border-4 border-yellow-400 p-6 rounded-3xl shadow-2xl max-w-lg w-full mb-6 transform transition hover:scale-105">
+        <span class="bg-pink-500 text-white font-bold text-xs md:text-sm uppercase tracking-widest px-3 py-1 rounded-full">Bahasa Melayu Tahun 4</span>
+        <h1 class="text-3xl md:text-4xl font-extrabold text-amber-600 mt-2 leading-tight drop-shadow-sm">EKSPEDISI PASAR MINI</h1>
+        <p class="text-lg md:text-xl font-bold text-sky-600 mt-1">Misi Ejen Penjodoh Bilangan!</p>
+      </div>
+
+      <!-- Player Name Input -->
+      <div class="w-full max-w-xs mb-4">
+        <input type="text" id="input-player-name" placeholder="Masukkan Nama Ejen..." class="w-full px-4 py-3 rounded-2xl border-4 border-pink-400 text-center font-bold text-slate-700 shadow-md focus:outline-none focus:ring-4 focus:ring-pink-300">
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex flex-col space-y-3 w-full max-w-xs">
+        <button onclick="startGame()" class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-lg py-3 rounded-2xl border-b-4 border-emerald-700 shadow-lg transition active:translate-y-1">
+          <i class="fa-solid fa-play mr-2"></i> MULA MISI
+        </button>
+        <button onclick="showModal('modal-tutorial')" class="bg-sky-400 hover:bg-sky-500 text-white font-bold text-base py-2.5 rounded-2xl border-b-4 border-sky-600 shadow-md transition active:translate-y-1">
+          <i class="fa-solid fa-book-open mr-2"></i> CARA BERMAIN
+        </button>
+
+        <div class="flex space-x-2">
+          <button onclick="showModal('modal-audio')" class="flex-1 bg-purple-400 hover:bg-purple-500 text-white font-bold text-sm py-2 rounded-2xl border-b-4 border-purple-600 shadow-md transition active:translate-y-1">
+            <i class="fa-solid fa-volume-high mr-1"></i> BUNYI
+          </button>
+          <button onclick="showModal('modal-leaderboard')" class="flex-1 bg-amber-400 hover:bg-amber-500 text-white font-bold text-sm py-2 rounded-2xl border-b-4 border-amber-600 shadow-md transition active:translate-y-1">
+            <i class="fa-solid fa-trophy mr-1"></i> REKOD
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: TUTORIAL -->
+    <div id="modal-tutorial" class="hidden absolute inset-0 z-40 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="bg-white rounded-3xl border-4 border-sky-400 p-6 max-w-md w-full shadow-2xl relative animate-fade-in">
+        <button onclick="closeModal('modal-tutorial')" class="absolute top-3 right-3 w-8 h-8 bg-red-500 text-white rounded-full font-bold">✕</button>
+        <h2 class="text-2xl font-bold text-sky-600 mb-4 text-center"><i class="fa-solid fa-gamepad mr-2"></i>Panduan Kawalan</h2>
+        
+        <div class="space-y-3 text-sm text-slate-700">
+          <div class="bg-sky-50 p-3 rounded-xl flex items-center space-x-3 border border-sky-200">
+            <div class="text-2xl text-sky-500"><i class="fa-solid fa-keyboard"></i></div>
+            <div>
+              <p class="font-bold text-slate-800">Komputer / Laptop:</p>
+              <p>Guna <span class="bg-white px-1 border rounded">A</span>/<span class="bg-white px-1 border rounded">D</span> atau <span class="bg-white px-1 border rounded">←</span>/<span class="bg-white px-1 border rounded">→</span> untuk jalan, <span class="bg-white px-1 border rounded">W</span>/<span class="bg-white px-1 border rounded">Space</span> untuk lompat, dan <span class="bg-white px-1 border rounded">E</span>/<span class="bg-white px-1 border rounded">Enter</span> untuk berinteraksi.</p>
+            </div>
+          </div>
+
+          <div class="bg-pink-50 p-3 rounded-xl flex items-center space-x-3 border border-pink-200">
+            <div class="text-2xl text-pink-500"><i class="fa-solid fa-mobile-screen-button"></i></div>
+            <div>
+              <p class="font-bold text-slate-800">Peranti Sentuh / Telefon:</p>
+              <p>Gunakan butang anak panah di skrin untuk bergerak dan melompat. Tekan butang tangan <i class="fa-solid fa-hand text-emerald-500"></i> apabila berada dekat objek/peniaga.</p>
+            </div>
+          </div>
+
+          <div class="bg-yellow-50 p-3 rounded-xl flex items-center space-x-3 border border-yellow-200">
+            <div class="text-2xl text-yellow-600"><i class="fa-solid fa-bullseye"></i></div>
+            <div>
+              <p class="font-bold text-slate-800">Misi Utama:</p>
+              <p>Teroka pasar, kutip barang tercicir, dan bantu peniaga memilih penjodoh bilangan yang tepat!</p>
+            </div>
+          </div>
+        </div>
+
+        <button onclick="closeModal('modal-tutorial')" class="w-full mt-5 bg-sky-500 hover:bg-sky-600 text-white font-bold py-2.5 rounded-xl shadow border-b-4 border-sky-700">
+          FAHAM, SAYA SIAP!
+        </button>
+      </div>
+    </div>
+
+    <!-- MODAL: AUDIO SETTINGS -->
+    <div id="modal-audio" class="hidden absolute inset-0 z-40 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="bg-white rounded-3xl border-4 border-purple-400 p-6 max-w-xs w-full shadow-2xl relative">
+        <button onclick="closeModal('modal-audio')" class="absolute top-3 right-3 w-8 h-8 bg-red-500 text-white rounded-full font-bold">✕</button>
+        <h2 class="text-2xl font-bold text-purple-600 mb-4 text-center"><i class="fa-solid fa-sliders mr-2"></i>Tetapan Bunyi</h2>
+        
+        <div class="space-y-4">
+          <div class="flex justify-between items-center bg-purple-50 p-3 rounded-xl">
+            <span class="font-bold text-purple-900">Muzik Latar (BGM)</span>
+            <button id="toggle-bgm" onclick="toggleBGM()" class="bg-emerald-500 text-white px-3 py-1 rounded-full text-xs font-bold">ON</button>
+          </div>
+          <div class="flex justify-between items-center bg-purple-50 p-3 rounded-xl">
+            <span class="font-bold text-purple-900">Kesan Bunyi (SFX)</span>
+            <button id="toggle-sfx" onclick="toggleSFX()" class="bg-emerald-500 text-white px-3 py-1 rounded-full text-xs font-bold">ON</button>
+          </div>
+        </div>
+
+        <button onclick="closeModal('modal-audio')" class="w-full mt-5 bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 rounded-xl border-b-4 border-purple-700">
+          SIMPAN
+        </button>
+      </div>
+    </div>
+
+    <!-- MODAL: LEADERBOARD -->
+    <div id="modal-leaderboard" class="hidden absolute inset-0 z-40 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="bg-white rounded-3xl border-4 border-amber-400 p-6 max-w-md w-full shadow-2xl relative">
+        <button onclick="closeModal('modal-leaderboard')" class="absolute top-3 right-3 w-8 h-8 bg-red-500 text-white rounded-full font-bold">✕</button>
+        <h2 class="text-2xl font-bold text-amber-600 mb-4 text-center"><i class="fa-solid fa-trophy mr-2"></i>Rekod Pencapaian</h2>
+        
+        <div id="leaderboard-list" class="max-h-60 overflow-y-auto space-y-2 pr-1">
+          <!-- Leaderboard Items Injected via JS -->
+        </div>
+
+        <div class="mt-4 flex space-x-2">
+          <button onclick="clearLeaderboard()" class="flex-1 bg-red-100 hover:bg-red-200 text-red-600 font-bold py-2 rounded-xl text-xs border border-red-300">
+            <i class="fa-solid fa-trash mr-1"></i> PADAM REKOD
+          </button>
+          <button onclick="closeModal('modal-leaderboard')" class="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 rounded-xl text-xs border-b-4 border-amber-700">
+            TUTUP
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL: PAUSE MENU -->
+    <div id="modal-pause" class="hidden absolute inset-0 z-40 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="bg-white rounded-3xl border-4 border-slate-400 p-6 max-w-xs w-full shadow-2xl text-center">
+        <h2 class="text-3xl font-bold text-slate-700 mb-4"><i class="fa-solid fa-pause mr-2"></i>PERMAINAN DIJEDA</h2>
+        
+        <div class="space-y-3">
+          <button onclick="togglePauseMenu()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-xl border-b-4 border-emerald-700">
+            TERUSKAN PERMAINAN
+          </button>
+          <button onclick="returnToMainMenu()" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-3 rounded-xl border-b-4 border-red-700">
+            MENU UTAMA
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- INTERACTIVE QUESTION OVERLAY -->
+    <div id="question-overlay" class="hidden absolute inset-0 z-30 bg-black/70 backdrop-blur-md flex items-center justify-center p-4">
+      <div class="bg-white rounded-3xl border-4 border-yellow-400 max-w-lg w-full p-6 shadow-2xl relative animate-pop-in">
+        <!-- Question Header -->
+        <div class="flex justify-between items-center border-b-2 border-slate-100 pb-3 mb-4">
+          <span id="q-category" class="bg-yellow-100 text-yellow-800 font-bold text-xs px-3 py-1 rounded-full">GERAI BUAH & SAYUR</span>
+          <span id="q-progress" class="text-xs font-bold text-slate-400">Soalan 1/3</span>
+        </div>
+
+        <!-- Question Prompt -->
+        <div class="mb-5 text-center">
+          <div id="q-icon" class="text-4xl mb-2 text-amber-500"><i class="fa-solid fa-basket-shopping"></i></div>
+          <h3 id="q-text" class="text-lg md:text-xl font-bold text-slate-800 leading-snug">
+            Pilih penjodoh bilangan yang betul untuk gambar di atas:
+          </h3>
+        </div>
+
+        <!-- Answer Options A, B, C, D -->
+        <div id="q-options" class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+          <!-- Buttons dynamically added via JS -->
+        </div>
+
+        <!-- Explanation Alert Box -->
+        <div id="q-feedback" class="hidden p-3 rounded-xl text-xs md:text-sm font-semibold mb-3 text-center"></div>
+
+        <button id="btn-next-question" onclick="nextQuestion()" class="hidden w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-xl border-b-4 border-emerald-700">
+          TERUSKAN <i class="fa-solid fa-arrow-right ml-1"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- GAME OVER SCREEN -->
+    <div id="screen-game-over" class="hidden absolute inset-0 z-40 bg-slate-900/90 flex flex-col items-center justify-center p-6 text-center text-white">
+      <div class="text-6xl text-red-500 mb-2 animate-bounce"><i class="fa-solid fa-heart-crack"></i></div>
+      <h2 class="text-3xl font-extrabold text-red-400 mb-1">CUBA LAGI, EJEN CILIK!</h2>
+      <p class="text-slate-300 text-sm max-w-xs mb-6">Nyawa anda telah habis. Jangan putus asa, belajar daripada kesilapan dan cuba lagi!</p>
+      
+      <div class="flex space-x-3 w-full max-w-xs">
+        <button onclick="restartCurrentMission()" class="flex-1 bg-yellow-500 hover:bg-yellow-600 text-slate-900 font-bold py-3 rounded-xl border-b-4 border-yellow-700">
+          <i class="fa-solid fa-rotate-right mr-1"></i> ULANG MISI
+        </button>
+        <button onclick="returnToMainMenu()" class="flex-1 bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 rounded-xl border-b-4 border-slate-800">
+          MENU UTAMA
+        </button>
+      </div>
+    </div>
+
+    <!-- WIN SCREEN -->
+    <div id="screen-victory" class="hidden absolute inset-0 z-40 bg-gradient-to-br from-amber-400 via-pink-400 to-purple-500 flex flex-col items-center justify-center p-6 text-center text-white overflow-y-auto">
+      <div class="bg-white text-slate-800 rounded-3xl border-4 border-yellow-300 p-6 max-w-md w-full shadow-2xl relative my-auto">
+        <div class="text-5xl text-yellow-400 mb-1 animate-bounce"><i class="fa-solid fa-trophy"></i></div>
+        <h2 class="text-3xl font-black text-amber-600 mb-1">TAHNIAH, EJEN CILIK!</h2>
+        <p class="text-xs font-bold text-slate-500 mb-4">Kamu berjaya menakluk Pasar Mini Bahasa!</p>
+
+        <!-- Stars Summary -->
+        <div id="victory-stars" class="flex justify-center space-x-2 text-4xl text-yellow-400 mb-4">
+          <i class="fa-solid fa-star"></i>
+          <i class="fa-solid fa-star"></i>
+          <i class="fa-solid fa-star"></i>
+        </div>
+
+        <!-- Performance Stats -->
+        <div class="bg-amber-50 rounded-2xl p-4 border border-amber-200 text-left space-y-2 text-xs md:text-sm font-semibold mb-5">
+          <div class="flex justify-between">
+            <span class="text-slate-600">Nama Ejen:</span>
+            <span id="win-player-name" class="font-bold text-amber-800">Ejen Aiman</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-600">Jumlah Mata:</span>
+            <span id="win-score" class="font-bold text-emerald-600">250 Mata</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-600">Jawapan Betul:</span>
+            <span id="win-accuracy" class="font-bold text-sky-600">10 / 10 (100%)</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-600">Masa Diambil:</span>
+            <span id="win-time" class="font-bold text-purple-600">02:45 Saat</span>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="grid grid-cols-2 gap-2 text-xs font-bold">
+          <button onclick="startGame()" class="bg-emerald-500 hover:bg-emerald-600 text-white py-2.5 rounded-xl border-b-4 border-emerald-700">
+            <i class="fa-solid fa-rotate-right mr-1"></i> MAIN LAGI
+          </button>
+          <button onclick="printCertificate()" class="bg-sky-500 hover:bg-sky-600 text-white py-2.5 rounded-xl border-b-4 border-sky-700">
+            <i class="fa-solid fa-print mr-1"></i> CETAK REKOD
+          </button>
+          <button onclick="returnToMainMenu()" class="col-span-2 bg-slate-200 hover:bg-slate-300 text-slate-700 py-2 rounded-xl">
+            KEMBALI KE MENU UTAMA
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- PRINTABLE CERTIFICATE / REPORT (HIDDEN ON SCREEN) -->
+  <div id="print-certificate" class="hidden p-8 bg-white border-8 border-amber-400 rounded-3xl max-w-2xl mx-auto text-center font-sans">
+    <h1 class="text-3xl font-extrabold text-amber-600 mb-1">SIJIL PENCAPAAN EJEN CILIK</h1>
+    <h3 class="text-lg font-bold text-slate-700 mb-6">Ekspedisi Pasar Mini: Misi Ejen Penjodoh Bilangan</h3>
+    
+    <p class="text-sm text-slate-600 mb-2">Dengan ini diperakukan bahawa:</p>
+    <h2 id="print-name" class="text-2xl font-black text-sky-600 underline mb-6">EJEN AIMAN</h2>
+    
+    <p class="text-sm text-slate-600 max-w-md mx-auto mb-6">
+      Telah berjaya menyelesaikan seluruh misi menyelamatkan Pasar Mini Bahasa dan menguasai penggunaan Penjodoh Bilangan Bahasa Melayu Tahun 4.
+    </p>
+
+    <div class="grid grid-cols-3 gap-4 bg-amber-50 p-4 rounded-xl border border-amber-200 mb-8 text-sm font-bold">
+      <div>
+        <p class="text-slate-500 text-xs">Jumlah Mata</p>
+        <p id="print-score" class="text-amber-700 text-base">250</p>
+      </div>
+      <div>
+        <p class="text-slate-500 text-xs">Ketepatan</p>
+        <p id="print-accuracy" class="text-emerald-700 text-base">100%</p>
+      </div>
+      <div>
+        <p class="text-slate-500 text-xs">Pencapaian Bintang</p>
+        <p id="print-stars" class="text-yellow-600 text-base">★★★</p>
+      </div>
+    </div>
+
+    <div class="flex justify-between items-end text-xs text-slate-400 mt-12 border-t pt-4">
+      <div>
+        <p>Tarikh: <span id="print-date">17/10/2026</span></p>
+        <p>Sistem Ekspedisi Pasar Mini BM T4</p>
+      </div>
+      <div class="text-right">
+        <p class="font-bold text-slate-600">Tandatangan Guru / Ibu Bapa</p>
+        <div class="h-8 border-b border-slate-300 w-32 ml-auto"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT GAME LOGIC -->
+  <script>
+    /* ==========================================================================
+       1. QUESTION BANK (BAHASA MELAYU TAHUN 4 - DSKP)
+       ========================================================================== */
+    const QUESTION_BANK = {
+      mission1: [ // Buah & Sayur
+        {
+          question: "Pilih penjodoh bilangan yang betul: ____ pisang.",
+          options: ["A. Sesikat", "B. Seekor", "C. Sekeping", "D. Sebilah"],
+          answer: 0,
+          explanation: "Pisang yang masih bercantum dalam satu sisir dipanggil 'sesikat'."
+        },
+        {
+          question: "Ibu membeli ____ sayur bayam di pasar mini.",
+          options: ["A. sebatang", "B. seikat", "C. sebiji", "D. sepotong"],
+          answer: 1,
+          explanation: "Sayur-sayuran yang diikat bersama dikira menggunakan penjodoh bilangan 'seikat'."
+        },
+        {
+          question: "Adik makan ____ buah tembikai yang manis itu.",
+          options: ["A. sepotong", "B. sehelai", "C. sepasang", "D. seekor"],
+          answer: 0,
+          explanation: "Buah-buahan yang dipotong hiris menggunakan penjodoh bilangan 'sepotong'."
+        },
+        {
+          question: "Mak Cik Lim membeli ____ telur ayam dari gerai.",
+          options: ["A. sebilah", "B. sebiji", "C. sebatang", "D. sehelai"],
+          answer: 1,
+          explanation: "Benda yang bulat atau kecil seperti telur dikira menggunakan 'sebiji'."
+        },
+        {
+          question: "Peniaga itu meletakkan ____ tandan pisang di atas meja.",
+          options: ["A. seikat", "B. setandan", "C. sepasang", "D. sehelai"],
+          answer: 1,
+          explanation: "Gugusan pisang yang masih bersama tangkainya dipanggil 'setandan'."
+        }
+      ],
+      mission2: [ // Haiwan & Makanan
+        {
+          question: "Pilih penjodoh bilangan yang betul bagi haiwan: ____ kucing.",
+          options: ["A. Sebatang", "B. Seekor", "C. Sekeping", "D. Sebungkus"],
+          answer: 1,
+          explanation: "Semua jenis haiwan menggunakan penjodoh bilangan 'ekor' (seekor)."
+        },
+        {
+          question: "Kakak membungkus ____ nasi lemak untuk bekal sekolah.",
+          options: ["A. sebungkus", "B. sepotong", "C. sebilah", "D. sehelai"],
+          answer: 0,
+          explanation: "Makanan yang dibungkus dengan daun atau kertas dipanggil 'sebungkus'."
+        },
+        {
+          question: "Ayah membeli ____ roti canai di warung.",
+          options: ["A. sekeping", "B. sebatang", "C. seekor", "D. seikat"],
+          answer: 0,
+          explanation: "Makanan yang nipis dan rata seperti roti canai dikira menggunakan 'sekeping'."
+        },
+        {
+          question: "Di dalam reban itu terdapat ____ ayam jantan.",
+          options: ["A. sebuah", "B. seekor", "C. sebatang", "D. seutas"],
+          answer: 1,
+          explanation: "Ayam ialah haiwan, jadi penjodoh bilangannya ialah 'seekor'."
+        },
+        {
+          question: "Penyedia kek memotong ____ kek coklat untuk tetamu.",
+          options: ["A. sepotong", "B. seikat", "C. sepasang", "D. sebilah"],
+          answer: 0,
+          explanation: "Kek yang telah diiris/dipotong menggunakan 'sepotong'."
+        }
+      ],
+      mission3: [ // Alat Tulis & Barang Harian
+        {
+          question: "Adik membeli ____ kasut baharu di kedai alat tulis & barangan.",
+          options: ["A. sebatang", "B. sepasang", "C. sekeping", "D. seekor"],
+          answer: 1,
+          explanation: "Benda yang berpasangan seperti kasut atau stoking menggunakan 'sepasang'."
+        },
+        {
+          question: "Murid itu menulis menggunakan ____ pensel.",
+          options: ["A. sebatang", "B. sehelai", "C. sebilah", "D. sebuah"],
+          answer: 0,
+          explanation: "Benda yang panjang dan lurus seperti pensel dikira menggunakan 'sebatang'."
+        },
+        {
+          question: "Abang mengasah ____ pisau yang tumpul itu.",
+          options: ["A. sebilah", "B. sehelai", "C. sepotong", "D. sebiji"],
+          answer: 0,
+          explanation: "Alat pemotong yang tajam seperti pisau menggunakan 'sebilah'."
+        },
+        {
+          question: "Cikgu memberikan ____ kertas lukisan kepada setiap murid.",
+          options: ["A. sehelai", "B. sebatang", "C. sepasang", "D. sebuah"],
+          answer: 0,
+          explanation: "Benda yang nipis dan lebar seperti kertas atau baju menggunakan 'sehelai'."
+        },
+        {
+          question: "Ayah meletakkan ____ meja kayu di dalam bilik bacaan.",
+          options: ["A. sebuah", "B. sebilah", "C. seikat", "D. sehelai"],
+          answer: 0,
+          explanation: "Benda yang besar dan tidak berformat khusus seperti meja menggunakan 'sebuah'."
+        }
+      ],
+      boss: [ // Profesor Keliru Challenge
+        {
+          question: "Antara yang berikut, padanan manakah yang BETUL?",
+          options: ["A. Sebilah pisang", "B. Sebilah pisau", "C. Seekor kertas", "D. Sebatang kasut"],
+          answer: 1,
+          explanation: "Pisau ialah alat tajam, jadi 'sebilah pisau' adalah tepat."
+        },
+        {
+          question: "Pilih ayat yang mempunyai penggunaan penjodoh bilangan yang betul.",
+          options: [
+            "A. Ibu membeli sehelai kasut baharu.",
+            "B. Adik memakai sepasang stoking putih.",
+            "C. Ayah membaca sebatang surat khabar.",
+            "D. Kakak memotong kek dengan sehelai pisau."
+          ],
+          answer: 1,
+          explanation: "Stoking dipakai secara berpasangan, jadi 'sepasang stoking' adalah betul."
+        },
+        {
+          question: "Nenek menyiang ikan menggunakan ____ pisau yang tajam.",
+          options: ["A. sebilah", "B. sebatang", "C. sehelai", "D. sebiji"],
+          answer: 0,
+          explanation: "Pisau menggunakan 'sebilah'."
+        },
+        {
+          question: "Aiman membawa ____ nasi lemak dan ____ air kotak ke sekolah.",
+          options: [
+            "A. sebungkus, sebiji",
+            "B. sebungkus, sebuah",
+            "C. sehelai, sebatang",
+            "D. seekor, sepotong"
+          ],
+          answer: 0,
+          explanation: "Nasi lemak dibungkus (sebungkus) dan air kotak berformat padat/kecil (sebiji)."
+        },
+        {
+          question: "Cikgu Siti memakai ____ baju kurung yang amat cantik.",
+          options: ["A. sehelai", "B. sepasang", "C. sebatang", "D. sebilah"],
+          answer: 0,
+          explanation: "Pakaian nipis/lembut seperti baju menggunakan 'sehelai'."
+        },
+        {
+          question: "Pilih kesalahan penjodoh bilangan dalam ayat: 'Pak Abu menanam sebilah pokok pokok kelapa.'",
+          options: ["A. Sebilah sepatutnya sebatang", "B. Pokok sepatutnya seekor", "C. Kelapa sepatutnya sehelai", "D. Tiada kesalahan"],
+          answer: 0,
+          explanation: "Pokok berbentuk tinggi/lurus menggunakan 'sebatang', bukan 'sebilah'."
+        },
+        {
+          question: "Pengurus kedai meletakkan ____ kereta mainan di dalam almari.",
+          options: ["A. sebuah", "B. sebilah", "C. sehelai", "D. seikat"],
+          answer: 0,
+          explanation: "Kenderaan atau barang mainan besar menggunakan 'sebuah'."
+        },
+        {
+          question: "Abang memakan ____ biskut sambil membaca buku.",
+          options: ["A. sekeping", "B. sebatang", "C. seekor", "D. sepasang"],
+          answer: 0,
+          explanation: "Biskut nipis menggunakan 'sekeping'."
+        },
+        {
+          question: "Peniaga itu menjual ____ sayur kangkung dengan harga RM2.",
+          options: ["A. seikat", "B. sebilah", "C. sepasang", "D. sehelai"],
+          answer: 0,
+          explanation: "Sayur yang dikumpul dan diikat menggunakan 'seikat'."
+        },
+        {
+          question: "Di atas pokok itu terdapat ____ burung yang sedang menyanyi.",
+          options: ["A. seekor", "B. sebatang", "C. sekeping", "D. sebuah"],
+          answer: 0,
+          explanation: "Burung ialah haiwan, maka penjodoh bilangannya ialah 'seekor'."
+        }
+      ]
+    };
+
+    /* ==========================================================================
+       2. AUDIO SYSTEM (WEB AUDIO API SYNTHESIZER)
+       ========================================================================== */
+    class SoundSystem {
+      constructor() {
+        this.ctx = null;
+        this.bgmEnabled = true;
+        this.sfxEnabled = true;
+        this.bgmInterval = null;
+      }
+
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          this.ctx = new AudioContext();
+        }
+      }
+
+      playTone(freq, duration, type = 'sine', volume = 0.1) {
+        if (!this.sfxEnabled) return;
+        this.init();
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+          gain.gain.setValueAtTime(volume, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.00001, this.ctx.currentTime + duration);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + duration);
+        } catch (e) {}
+      }
+
+      sfxJump() {
+        if (!this.sfxEnabled) return;
+        this.init();
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(150, this.ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(400, this.ctx.currentTime + 0.15);
+          gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+          gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.15);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + 0.15);
+        } catch (e) {}
+      }
+
+      sfxCollect() {
+        this.playTone(523.25, 0.1, 'sine', 0.15); // C5
+        setTimeout(() => this.playTone(659.25, 0.15, 'sine', 0.15), 80); // E5
+      }
+
+      sfxCorrect() {
+        this.playTone(523.25, 0.1, 'triangle', 0.2);
+        setTimeout(() => this.playTone(659.25, 0.1, 'triangle', 0.2), 100);
+        setTimeout(() => this.playTone(783.99, 0.2, 'triangle', 0.2), 200);
+      }
+
+      sfxWrong() {
+        this.playTone(200, 0.15, 'sawtooth', 0.2);
+        setTimeout(() => this.playTone(150, 0.25, 'sawtooth', 0.2), 120);
+      }
+
+      startBGM() {
+        if (!this.bgmEnabled || this.bgmInterval) return;
+        this.init();
+        
+        // Cutesy BGM melody loop notes
+        const notes = [261.63, 329.63, 392.00, 523.25, 392.00, 329.63];
+        let idx = 0;
+
+        this.bgmInterval = setInterval(() => {
+          if (!this.bgmEnabled) return;
+          try {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(notes[idx], this.ctx.currentTime);
+            gain.gain.setValueAtTime(0.03, this.ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.3);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start();
+            osc.stop(this.ctx.currentTime + 0.3);
+            idx = (idx + 1) % notes.length;
+          } catch(e) {}
+        }, 400);
+      }
+
+      stopBGM() {
+        if (this.bgmInterval) {
+          clearInterval(this.bgmInterval);
+          this.bgmInterval = null;
+        }
+      }
+    }
+
+    const sound = new SoundSystem();
+
+    /* ==========================================================================
+       3. GAME ENGINE & STATE MANAGEMENT
+       ========================================================================== */
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // Game Variables
+    let playerName = "Ejen Cilik";
+    let score = 0;
+    let lives = 3;
+    let currentMission = 1; // 1: Buah/Sayur, 2: Haiwan/Makanan, 3: Alat Tulis, 4: Boss
+    let gameActive = false;
+    let isPaused = false;
+    let totalQuestionsAnswered = 0;
+    let totalCorrectAnswers = 0;
+    let startTime = 0;
+    let endTime = 0;
+
+    // Keys State
+    const keys = {
+      left: false,
+      right: false,
+      up: false,
+      interact: false
+    };
+
+    // Camera offset
+    let cameraX = 0;
+
+    // Player Object
+    const player = {
+      x: 100,
+      y: 300,
+      width: 44,
+      height: 60,
+      vx: 0,
+      vy: 0,
+      speed: 4.5,
+      jumpForce: -11,
+      isGrounded: false,
+      facing: 'right',
+      animFrame: 0,
+      animTimer: 0
+    };
+
+    // World Elements
+    let platforms = [];
+    let items = [];
+    let npcs = [];
+    let activeInteractable = null;
+
+    // Setup Canvas Resize
+    function resizeCanvas() {
+      const container = canvas.parentElement;
+      canvas.width = container.clientWidth;
+      canvas.height = container.clientHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    /* ==========================================================================
+       4. LEVEL CREATOR / MISSION BUILDER
+       ========================================================================== */
+    function loadMission(missionNum) {
+      currentMission = missionNum;
+      player.x = 80;
+      player.y = 300;
+      player.vx = 0;
+      player.vy = 0;
+
+      // Update HUD Title
+      const titles = [
+        "Misi 1: Gerai Buah & Sayur",
+        "Misi 2: Gerai Haiwan & Makanan",
+        "Misi 3: Kedai Alat Tulis",
+        "MISI AKHIR: Profesor Keliru!"
+      ];
+      document.getElementById('hud-mission-title').innerText = titles[missionNum - 1];
+
+      // Build Platforms
+      platforms = [
+        { x: 0, y: canvas.height - 50, width: 2200, height: 60 }, // Ground
+        { x: 300, y: canvas.height - 140, width: 140, height: 20 },
+        { x: 600, y: canvas.height - 180, width: 160, height: 20 },
+        { x: 950, y: canvas.height - 150, width: 150, height: 20 },
+        { x: 1300, y: canvas.height - 190, width: 180, height: 20 }
+      ];
+
+      // Spawn NPCs & Mission Collectibles based on mission
+      items = [];
+      npcs = [];
+
+      if (missionNum === 1) { // Buah & Sayur
+        npcs.push({ x: 450, y: canvas.height - 110, name: "Pak Cik Buah", icon: "🍎", dialog: "Bantu saya labelkan pisang dan sayur!" });
+        items.push({ id: 0, x: 340, y: canvas.height - 180, name: "Pisang", icon: "🍌", collected: false });
+        items.push({ id: 1, x: 650, y: canvas.height - 220, name: "Sayur Bayam", icon: "🥬", collected: false });
+        items.push({ id: 2, x: 1000, y: canvas.height - 190, name: "Telur Ayam", icon: "🥚", collected: false });
+      } 
+      else if (missionNum === 2) { // Haiwan & Makanan
+        npcs.push({ x: 500, y: canvas.height - 110, name: "Kakak Makanan", icon: "🐱", dialog: "Banyak label makanan dan haiwan terlepas!" });
+        items.push({ id: 0, x: 320, y: canvas.height - 180, name: "Kucing Comel", icon: "🐱", collected: false });
+        items.push({ id: 1, x: 680, y: canvas.height - 220, name: "Nasi Lemak", icon: "🍙", collected: false });
+        items.push({ id: 2, x: 1350, y: canvas.height - 230, name: "Roti Canai", icon: "🍞", collected: false });
+      }
+      else if (missionNum === 3) { // Alat Tulis
+        npcs.push({ x: 480, y: canvas.height - 110, name: "Abang Alat Tulis", icon: "✏️", dialog: "Cari kasut dan pensel yang tercicir!" });
+        items.push({ id: 0, x: 350, y: canvas.height - 180, name: "Kasut Sukan", icon: "👟", collected: false });
+        items.push({ id: 1, x: 700, y: canvas.height - 220, name: "Pensel Warna", icon: "✏️", collected: false });
+        items.push({ id: 2, x: 1000, y: canvas.height - 190, name: "Pisau Tajam", icon: "🔪", collected: false });
+      }
+      else if (missionNum === 4) { // Boss Challenge
+        npcs.push({ x: 600, y: canvas.height - 110, name: "Profesor Keliru", icon: "🧙‍♂️", dialog: "Mwahaha! Jawab 10 soalan saya jika mahu pulihkan pasar!" });
+      }
+    }
+
+    /* ==========================================================================
+       5. PLAYER CONTROLS & EVENT LISTENERS
+       ========================================================================== */
+    // Keyboard Controls
+    window.addEventListener('keydown', (e) => {
+      if (!gameActive || isPaused) return;
+      if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = true;
+      if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = true;
+      if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W' || e.key === ' ') {
+        keys.up = true;
+        if (player.isGrounded) sound.sfxJump();
+      }
+      if (e.key === 'e' || e.key === 'E' || e.key === 'Enter') {
+        keys.interact = true;
+        triggerInteraction();
+      }
+      if (e.key === 'Escape') togglePauseMenu();
+    });
+
+    window.addEventListener('keyup', (e) => {
+      if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = false;
+      if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = false;
+      if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W' || e.key === ' ') keys.up = false;
+      if (e.key === 'e' || e.key === 'E' || e.key === 'Enter') keys.interact = false;
+    });
+
+    // Touch Controls setup
+    function setupTouchButton(id, keyName, isJump = false) {
+      const btn = document.getElementById(id);
+      if (!btn) return;
+
+      const start = (e) => {
+        e.preventDefault();
+        keys[keyName] = true;
+        if (isJump && player.isGrounded) sound.sfxJump();
+        if (keyName === 'interact') triggerInteraction();
+      };
+      const end = (e) => {
+        e.preventDefault();
+        keys[keyName] = false;
+      };
+
+      btn.addEventListener('touchstart', start);
+      btn.addEventListener('touchend', end);
+      btn.addEventListener('mousedown', start);
+      btn.addEventListener('mouseup', end);
+    }
+
+    setupTouchButton('btn-left', 'left');
+    setupTouchButton('btn-right', 'right');
+    setupTouchButton('btn-jump', 'up', true);
+    setupTouchButton('btn-interact', 'interact');
+
+    /* ==========================================================================
+       6. GAME LOOP & DRAWING FUNCTIONS
+       ========================================================================== */
+    function updatePlayer() {
+      // Horizontal movement
+      if (keys.left) {
+        player.vx = -player.speed;
+        player.facing = 'left';
+      } else if (keys.right) {
+        player.vx = player.speed;
+        player.facing = 'right';
+      } else {
+        player.vx *= 0.8; // friction
+      }
+
+      // Vertical movement & gravity
+      if (keys.up && player.isGrounded) {
+        player.vy = player.jumpForce;
+        player.isGrounded = false;
+      }
+
+      player.vy += 0.5; // gravity
+
+      // Move player position
+      player.x += player.vx;
+      player.y += player.vy;
+
+      // Platform collision
+      player.isGrounded = false;
+      platforms.forEach(p => {
+        if (player.x + player.width > p.x &&
+            player.x < p.x + p.width &&
+            player.y + player.height >= p.y &&
+            player.y + player.height <= p.y + 15 &&
+            player.vy >= 0) {
+          player.y = p.y - player.height;
+          player.vy = 0;
+          player.isGrounded = true;
+        }
+      });
+
+      // Bound player in world
+      if (player.x < 0) player.x = 0;
+      if (player.x > 2150) player.x = 2150;
+
+      // Update Camera to follow player smooth
+      cameraX = player.x - canvas.width / 3;
+      if (cameraX < 0) cameraX = 0;
+
+      // Animation Step
+      if (Math.abs(player.vx) > 0.5) {
+        player.animTimer++;
+        if (player.animTimer % 8 === 0) {
+          player.animFrame = (player.animFrame + 1) % 4;
+        }
+      } else {
+        player.animFrame = 0;
+      }
+
+      // Check proximity for interaction
+      checkProximity();
+    }
+
+    function checkProximity() {
+      activeInteractable = null;
+
+      // Check items
+      items.forEach(item => {
+        if (!item.collected && Math.abs(player.x - item.x) < 50) {
+          activeInteractable = { type: 'item', data: item };
+        }
+      });
+
+      // Check NPCs
+      npcs.forEach(npc => {
+        if (Math.abs(player.x - npc.x) < 70) {
+          activeInteractable = { type: 'npc', data: npc };
+        }
+      });
+
+      // Show/Hide Mobile Interact Button
+      const interactBtn = document.getElementById('btn-interact');
+      if (activeInteractable) {
+        interactBtn.classList.remove('hidden');
+      } else {
+        interactBtn.classList.add('hidden');
+      }
+    }
+
+    function triggerInteraction() {
+      if (!activeInteractable) return;
+
+      if (activeInteractable.type === 'item') {
+        sound.sfxCollect();
+        activeInteractable.data.collected = true;
+        score += 5;
+        updateHUD();
+        openQuestionModal(currentMission, activeInteractable.data.id);
+      } 
+      else if (activeInteractable.type === 'npc') {
+        if (currentMission === 4) { // Boss Mission
+          openQuestionModal(4, 0);
+        } else {
+          // NPC dialog feedback
+          showNPCNotice(activeInteractable.data.name, activeInteractable.data.dialog);
+        }
+      }
+    }
+
+    function drawGame() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      ctx.save();
+      ctx.translate(-cameraX, 0);
+
+      // Draw Parallax Background Market Stalls
+      drawMarketBackground();
+
+      // Draw Platforms
+      platforms.forEach(p => {
+        ctx.fillStyle = '#818cf8'; // Soft pastel purple/indigo
+        ctx.beginPath();
+        ctx.roundRect(p.x, p.y, p.width, p.height, 10);
+        ctx.fill();
+        ctx.strokeStyle = '#4f46e5';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+      });
+
+      // Draw Items
+      items.forEach(item => {
+        if (!item.collected) {
+          ctx.font = '28px sans-serif';
+          ctx.fillText(item.icon, item.x, item.y - 10 + Math.sin(Date.now() / 200) * 5);
+
+          // Interaction Prompt
+          ctx.font = 'bold 12px Quicksand';
+          ctx.fillStyle = '#d97706';
+          ctx.fillText("KUTIP [E]", item.x - 10, item.y - 40);
+        }
+      });
+
+      // Draw NPCs
+      npcs.forEach(npc => {
+        ctx.font = '40px sans-serif';
+        ctx.fillText(npc.icon, npc.x, npc.y);
+        ctx.font = 'bold 13px Fredoka';
+        ctx.fillStyle = '#1e293b';
+        ctx.fillText(npc.name, npc.x - 15, npc.y - 50);
+      });
+
+      // Draw Player Character (Kawaii Agent Vector)
+      drawPlayerCharacter();
+
+      ctx.restore();
+    }
+
+    function drawMarketBackground() {
+      // Sky & Cloud decor
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(200 - cameraX * 0.2, 80, 30, 0, Math.PI * 2);
+      ctx.arc(230 - cameraX * 0.2, 70, 40, 0, Math.PI * 2);
+      ctx.arc(260 - cameraX * 0.2, 80, 30, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Market Stall Shop Tops
+      const stallX = 400;
+      ctx.fillStyle = '#f43f5e'; // Pink canopy
+      ctx.beginPath();
+      ctx.moveTo(stallX, 150);
+      ctx.lineTo(stallX + 250, 150);
+      ctx.lineTo(stallX + 230, 200);
+      ctx.lineTo(stallX + 20, 200);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    function drawPlayerCharacter() {
+      const px = player.x;
+      const py = player.y;
+
+      ctx.save();
+      if (player.facing === 'left') {
+        ctx.translate(px + player.width, py);
+        ctx.scale(-1, 1);
+      } else {
+        ctx.translate(px, py);
+      }
+
+      // Body (Kawaii Agent Suit)
+      ctx.fillStyle = '#0284c7'; // Sky blue jacket
+      ctx.beginPath();
+      ctx.roundRect(8, 20, 28, 30, 8);
+      ctx.fill();
+
+      // Head
+      ctx.fillStyle = '#fde047'; // Yellow cap/hair
+      ctx.beginPath();
+      ctx.arc(22, 14, 16, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Face & Eyes
+      ctx.fillStyle = '#1e293b';
+      ctx.beginPath();
+      ctx.arc(26, 12, 3, 0, Math.PI * 2); // Right Eye
+      ctx.arc(18, 12, 3, 0, Math.PI * 2); // Left Eye
+      ctx.fill();
+
+      // Legs Animation
+      ctx.fillStyle = '#1e293b';
+      const legOffset = Math.sin(player.animFrame * Math.PI / 2) * 6;
+      ctx.fillRect(12, 50, 6, 10 + legOffset);
+      ctx.fillRect(26, 50, 6, 10 - legOffset);
+
+      ctx.restore();
+    }
+
+    function gameLoop() {
+      if (gameActive && !isPaused) {
+        updatePlayer();
+        drawGame();
+      }
+      requestAnimationFrame(gameLoop);
+    }
+
+    /* ==========================================================================
+       7. HUD & QUESTION OVERLAY LOGIC
+       ========================================================================== */
+    let currentQuestionData = null;
+
+    function openQuestionModal(missionIndex, questionIndex) {
+      isPaused = true;
+      const modal = document.getElementById('question-overlay');
+      const qCategory = document.getElementById('q-category');
+      const qProgress = document.getElementById('q-progress');
+      const qText = document.getElementById('q-text');
+      const qOptions = document.getElementById('q-options');
+      const qFeedback = document.getElementById('q-feedback');
+      const btnNext = document.getElementById('btn-next-question');
+
+      qFeedback.classList.add('hidden');
+      btnNext.classList.add('hidden');
+
+      let bankKey = 'mission1';
+      if (missionIndex === 2) bankKey = 'mission2';
+      if (missionIndex === 3) bankKey = 'mission3';
+      if (missionIndex === 4) bankKey = 'boss';
+
+      const questionsList = QUESTION_BANK[bankKey];
+      currentQuestionData = questionsList[questionIndex % questionsList.length];
+
+      qCategory.innerText = `MISI ${missionIndex}: PENJODOH BILANGAN`;
+      qProgress.innerText = `Soalan ${questionIndex + 1}/${questionsList.length}`;
+      qText.innerText = currentQuestionData.question;
+
+      // Render Options A, B, C, D
+      qOptions.innerHTML = '';
+      currentQuestionData.options.forEach((opt, idx) => {
+        const btn = document.createElement('button');
+        btn.className = "w-full text-left bg-slate-100 hover:bg-yellow-100 border-2 border-slate-300 p-3 rounded-2xl font-bold text-slate-800 transition text-sm md:text-base";
+        btn.innerText = opt;
+        btn.onclick = () => selectAnswer(idx, btn);
+        qOptions.appendChild(btn);
+      });
+
+      modal.classList.remove('hidden');
+    }
+
+    function selectAnswer(selectedIndex, btnElement) {
+      const qFeedback = document.getElementById('q-feedback');
+      const btnNext = document.getElementById('btn-next-question');
+      const optionButtons = document.querySelectorAll('#q-options button');
+
+      // Disable all option buttons
+      optionButtons.forEach(b => b.disabled = true);
+
+      totalQuestionsAnswered++;
+
+      if (selectedIndex === currentQuestionData.answer) {
+        // Correct Answer
+        sound.sfxCorrect();
+        btnElement.classList.remove('bg-slate-100');
+        btnElement.classList.add('bg-emerald-400', 'text-white', 'border-emerald-600');
+        
+        qFeedback.innerText = "✓ TEPAT sekali! " + currentQuestionData.explanation;
+        qFeedback.className = "p-3 rounded-xl text-xs md:text-sm font-semibold mb-3 text-center bg-emerald-100 text-emerald-800 border border-emerald-300 block";
+
+        score += 10;
+        totalCorrectAnswers++;
+      } else {
+        // Wrong Answer
+        sound.sfxWrong();
+        btnElement.classList.remove('bg-slate-100');
+        btnElement.classList.add('bg-red-400', 'text-white', 'border-red-600');
+
+        qFeedback.innerText = "✕ KURANG TEPAT! " + currentQuestionData.explanation;
+        qFeedback.className = "p-3 rounded-xl text-xs md:text-sm font-semibold mb-3 text-center bg-red-100 text-red-800 border border-red-300 block";
+
+        lives--;
+        updateHUD();
+
+        if (lives <= 0) {
+          setTimeout(() => {
+            document.getElementById('question-overlay').classList.add('hidden');
+            document.getElementById('screen-game-over').classList.remove('hidden');
+          }, 1500);
+          return;
+        }
+      }
+
+      updateHUD();
+      btnNext.classList.remove('hidden');
+    }
+
+    function nextQuestion() {
+      document.getElementById('question-overlay').classList.add('hidden');
+      isPaused = false;
+
+      // Check if all collectibles in current mission are completed
+      const remainingItems = items.filter(i => !i.collected);
+      if (remainingItems.length === 0 && currentMission < 4) {
+        currentMission++;
+        score += 20; // Mission completion bonus
+        loadMission(currentMission);
+        showNPCNotice("MISI SELESAI!", "Tahniah! Mari teruskan ke gerai seterusnya!");
+      } else if (currentMission === 4 && totalQuestionsAnswered >= 10) {
+        triggerVictory();
+      }
+    }
+
+    function showNPCNotice(title, message) {
+      alert(`${title}\n\n"${message}"`);
+    }
+
+    function updateHUD() {
+      document.getElementById('hud-player-name').innerText = playerName;
+      document.getElementById('hud-score').innerText = score;
+
+      // Update hearts
+      const heartsContainer = document.getElementById('hud-lives');
+      heartsContainer.innerHTML = '';
+      for (let i = 0; i < 3; i++) {
+        if (i < lives) {
+          heartsContainer.innerHTML += '<i class="fa-solid fa-heart"></i>';
+        } else {
+          heartsContainer.innerHTML += '<i class="fa-regular fa-heart text-slate-300"></i>';
+        }
+      }
+    }
+
+    /* ==========================================================================
+       8. GAME FLOW, VICTORY & LEADERBOARD
+       ========================================================================== */
+    function startGame() {
+      const nameInput = document.getElementById('input-player-name').value.trim();
+      playerName = nameInput || "Ejen Cilik";
+
+      score = 0;
+      lives = 3;
+      totalQuestionsAnswered = 0;
+      totalCorrectAnswers = 0;
+      startTime = Date.now();
+
+      document.getElementById('screen-main-menu').classList.add('hidden');
+      document.getElementById('screen-victory').classList.add('hidden');
+      document.getElementById('screen-game-over').classList.add('hidden');
+      document.getElementById('hud-bar').classList.remove('hidden');
+
+      // Check if mobile for on-screen controls display
+      if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+        document.getElementById('mobile-controls').classList.remove('hidden');
+      }
+
+      sound.startBGM();
+      gameActive = true;
+      isPaused = false;
+
+      loadMission(1);
+    }
+
+    function triggerVictory() {
+      gameActive = false;
+      endTime = Date.now();
+      const timeSpentSeconds = Math.floor((endTime - startTime) / 1000);
+
+      document.getElementById('hud-bar').classList.add('hidden');
+      document.getElementById('mobile-controls').classList.add('hidden');
+
+      // Accuracy Percentage Calculation
+      const accuracy = totalQuestionsAnswered > 0 ? Math.round((totalCorrectAnswers / totalQuestionsAnswered) * 100) : 100;
+
+      // Stars earned
+      let stars = 1;
+      if (accuracy >= 90) stars = 3;
+      else if (accuracy >= 70) stars = 2;
+
+      // Render Stars HTML
+      let starsHTML = '';
+      for (let i = 0; i < 3; i++) {
+        if (i < stars) starsHTML += '<i class="fa-solid fa-star text-yellow-400"></i>';
+        else starsHTML += '<i class="fa-regular fa-star text-slate-300"></i>';
+      }
+      document.getElementById('victory-stars').innerHTML = starsHTML;
+
+      // Stats Summary
+      document.getElementById('win-player-name').innerText = playerName;
+      document.getElementById('win-score').innerText = score + " Mata";
+      document.getElementById('win-accuracy').innerText = `${totalCorrectAnswers} / ${totalQuestionsAnswered} (${accuracy}%)`;
+      document.getElementById('win-time').innerText = `${timeSpentSeconds} Saat`;
+
+      // Save to localStorage Leaderboard
+      saveLeaderboardEntry({
+        name: playerName,
+        score: score,
+        accuracy: accuracy,
+        date: new Date().toLocaleDateString('ms-MY')
+      });
+
+      document.getElementById('screen-victory').classList.remove('hidden');
+    }
+
+    function saveLeaderboardEntry(entry) {
+      let records = JSON.parse(localStorage.getItem('pasarmini_records') || '[]');
+      records.push(entry);
+      records.sort((a, b) => b.score - a.score);
+      records = records.slice(0, 10); // Keep top 10
+      localStorage.setItem('pasarmini_records', JSON.stringify(records));
+      renderLeaderboard();
+    }
+
+    function renderLeaderboard() {
+      const list = document.getElementById('leaderboard-list');
+      const records = JSON.parse(localStorage.getItem('pasarmini_records') || '[]');
+
+      if (records.length === 0) {
+        list.innerHTML = '<p class="text-center text-xs text-slate-400 py-4">Tiada rekod disimpan lagi.</p>';
+        return;
+      }
+
+      list.innerHTML = '';
+      records.forEach((r, idx) => {
+        const item = document.createElement('div');
+        item.className = "flex justify-between items-center bg-amber-50 p-3 rounded-xl border border-amber-200 text-xs font-bold";
+        item.innerHTML = `
+          <div class="flex items-center space-x-2">
+            <span class="w-5 h-5 bg-amber-400 text-white rounded-full flex items-center justify-center text-[10px]">${idx + 1}</span>
+            <span class="text-slate-800">${r.name}</span>
+          </div>
+          <div class="text-right">
+            <span class="text-emerald-600">${r.score} Mata</span>
+            <span class="text-slate-400 text-[10px] block">${r.accuracy}% Ketepatan</span>
+          </div>
+        `;
+        list.appendChild(item);
+      });
+    }
+
+    function clearLeaderboard() {
+      if (confirm("Adakah anda pasti mahu memadamkan semua rekod pencapaian?")) {
+        localStorage.removeItem('pasarmini_records');
+        renderLeaderboard();
+      }
+    }
+
+    function printCertificate() {
+      const accuracy = totalQuestionsAnswered > 0 ? Math.round((totalCorrectAnswers / totalQuestionsAnswered) * 100) : 100;
+      document.getElementById('print-name').innerText = playerName.toUpperCase();
+      document.getElementById('print-score').innerText = score;
+      document.getElementById('print-accuracy').innerText = accuracy + "%";
+      document.getElementById('print-date').innerText = new Date().toLocaleDateString('ms-MY');
+      
+      window.print();
+    }
+
+    /* ==========================================================================
+       9. MODAL & UI CONTROLLERS
+       ========================================================================== */
+    function showModal(id) {
+      if (id === 'modal-leaderboard') renderLeaderboard();
+      document.getElementById(id).classList.remove('hidden');
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.add('hidden');
+    }
+
+    function togglePauseMenu() {
+      isPaused = !isPaused;
+      const modal = document.getElementById('modal-pause');
+      if (isPaused) modal.classList.remove('hidden');
+      else modal.classList.add('hidden');
+    }
+
+    function returnToMainMenu() {
+      gameActive = false;
+      isPaused = false;
+      sound.stopBGM();
+      document.getElementById('modal-pause').classList.add('hidden');
+      document.getElementById('hud-bar').classList.add('hidden');
+      document.getElementById('mobile-controls').classList.add('hidden');
+      document.getElementById('screen-game-over').classList.add('hidden');
+      document.getElementById('screen-victory').classList.add('hidden');
+      document.getElementById('screen-main-menu').classList.remove('hidden');
+    }
+
+    function restartCurrentMission() {
+      document.getElementById('screen-game-over').classList.add('hidden');
+      lives = 3;
+      updateHUD();
+      loadMission(currentMission);
+      gameActive = true;
+    }
+
+    function toggleBGM() {
+      sound.bgmEnabled = !sound.bgmEnabled;
+      const btn = document.getElementById('toggle-bgm');
+      btn.innerText = sound.bgmEnabled ? "ON" : "OFF";
+      btn.className = sound.bgmEnabled ? "bg-emerald-500 text-white px-3 py-1 rounded-full text-xs font-bold" : "bg-slate-300 text-slate-600 px-3 py-1 rounded-full text-xs font-bold";
+      
+      if (sound.bgmEnabled) sound.startBGM();
+      else sound.stopBGM();
+    }
+
+    function toggleSFX() {
+      sound.sfxEnabled = !sound.sfxEnabled;
+      const btn = document.getElementById('toggle-sfx');
+      btn.innerText = sound.sfxEnabled ? "ON" : "OFF";
+      btn.className = sound.sfxEnabled ? "bg-emerald-500 text-white px-3 py-1 rounded-full text-xs font-bold" : "bg-slate-300 text-slate-600 px-3 py-1 rounded-full text-xs font-bold";
+    }
+
+    // Initialize Game Engine on Load
+    window.onload = function() {
+      renderLeaderboard();
+      requestAnimationFrame(gameLoop);
+    };
+  </script>
+</body>
+</html>
